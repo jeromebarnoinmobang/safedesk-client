@@ -1,0 +1,70 @@
+name: SafeDesk client APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version du client (ex: 0.1.0)"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Construire (nonRoot release)
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleNonRootRelease
+
+      - name: Signer
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          KS="$RUNNER_TEMP/safedesk.jks"
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$KS"; PASS="$KS_PASS"; ALIAS="${KS_ALIAS:-safedesk}"
+            echo "Signature: cle stable"
+          else
+            PASS=$(openssl rand -hex 16); ALIAS=safedesk
+            keytool -genkeypair -keystore "$KS" -storepass "$PASS" -keypass "$PASS" \
+              -alias "$ALIAS" -dname "CN=SafeDesk" -keyalg RSA -keysize 2048 -validity 3650
+            echo "Signature: cle EPHEMERE"
+          fi
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          V="${{ github.event.inputs.version }}"; [ -n "$V" ] || V=0.1.0
+          APK=$(find app/build/outputs/apk -name "*.apk" | head -1)
+          echo "APK brut: $APK"
+          "$BT/zipalign" -f -p 4 "$APK" aligned.apk
+          "$BT/apksigner" sign --ks "$KS" --ks-pass "pass:$PASS" --ks-key-alias "$ALIAS" \
+            --key-pass "pass:$PASS" --out "SafeDesk-client-$V.apk" aligned.apk
+          echo "OUT=SafeDesk-client-$V.apk" >> "$GITHUB_ENV"
+          echo "V=$V" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safedesk-client-apk
+          path: ${{ env.OUT }}
+
+      - name: Publier la release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: client-v${{ env.V }}
+          name: "SafeDesk client ${{ env.V }} (moteur Moonlight)"
+          files: ${{ env.OUT }}
+          body: |
+            Client de streaming SafeDesk (fork Moonlight, GPL-3.0).
+            Vise le recepteur Sunshine embarque dans l image SafeDesk.

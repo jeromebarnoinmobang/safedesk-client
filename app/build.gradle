@@ -36,7 +36,7 @@ android {
                 }
             }
 
-            applicationId "com.limelight.root"
+            applicationId "org.safedesk.client.root"
             dimension "root"
             buildConfigField "boolean", "ROOT_BUILD", "true"
         }
@@ -48,7 +48,7 @@ android {
                 }
             }
 
-            applicationId "com.limelight"
+            applicationId "org.safedesk.client"
             dimension "root"
             buildConfigField "boolean", "ROOT_BUILD", "false"
         }
@@ -82,8 +82,8 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
-            resValue "string", "app_label", "Moonlight (Debug)"
-            resValue "string", "app_label_root", "Moonlight (Root Debug)"
+            resValue "string", "app_label", "SafeDesk (Debug)"
+            resValue "string", "app_label_root", "SafeDesk (Root Debug)"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
@@ -120,8 +120,8 @@ android {
             //
             // TL;DR: Leave the following line alone!
             applicationIdSuffix ".unofficial"
-            resValue "string", "app_label", "Moonlight"
-            resValue "string", "app_label_root", "Moonlight (Root)"
+            resValue "string", "app_label", "SafeDesk"
+            resValue "string", "app_label_root", "SafeDesk (Root)"
 
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
